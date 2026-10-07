@@ -1,0 +1,16 @@
+# Sul sito servono solo index.html e l'immagine di anteprima dei link condivisi.
+# I materiali promozionali e i loro generatori restano sul computer.
+promo/
+
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+!/nunner_anteprima_it.png
+
+# File di sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*

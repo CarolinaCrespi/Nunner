@@ -2425,14 +2425,14 @@ function applyLang(){
 const SITE='https://www.carolinacrespi.it/';
 const credit=intro=>`<div class="credit">${L('un gioco di','a game by')} Carolina Crespi · <button class="link" onclick="openAbout()">${L('chi sono','about me')}</button>${
   intro?` · <button class="link" onclick="playIntro()">${L("rivedi l'intro",'replay intro')}</button>`:''}</div>`;
-/* i fedeli: le visite contate da GoatCounter, lette una volta all'avvio. Se il conteggio non arriva
-   (gioco aperto in locale, rete assente, contatore pubblico disattivato) la riga resta vuota. */
-let FEDELI=0;
-const fedeliTxt=()=>FEDELI?`<svg viewBox="0 0 5 7" width="10" height="14" shape-rendering="crispEdges" fill="currentColor"><path d="M2 0h1v7H2zM0 2h5v1H0z"/></svg>${
+/* i fedeli: le visite contate da GoatCounter, lette una volta all'avvio. Lo zero si mostra; se invece
+   il conteggio non arriva (gioco aperto in locale, rete assente, contatore bloccato) la riga resta vuota. */
+let FEDELI=null;
+const fedeliTxt=()=>FEDELI!==null?`<svg viewBox="0 0 5 7" width="10" height="14" shape-rendering="crispEdges" fill="currentColor"><path d="M2 0h1v7H2zM0 2h5v1H0z"/></svg>${
   FEDELI.toLocaleString(LANG==='en'?'en-US':'it-IT')} ${FEDELI===1?L('fedele','faithful'):L('fedeli','faithful')}`:'';
 fetch('https://nunnercounter.goatcounter.com/counter/TOTAL.json')
   .then(r=>r.ok?r.json():null)
-  .then(j=>{FEDELI=j?parseInt(String(j.count).replace(/\D/g,''),10)||0:0;
+  .then(j=>{FEDELI=j?parseInt(String(j.count).replace(/\D/g,''),10)||0:null;
     const el=document.getElementById('fedeli');if(el)el.innerHTML=fedeliTxt();})
   .catch(()=>{});
 let aboutBack=null;                              // la schermata a cui tornare

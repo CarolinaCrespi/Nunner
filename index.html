@@ -2430,8 +2430,10 @@ const credit=intro=>`<div class="credit">${L('un gioco di','a game by')} Carolin
 let FEDELI=null;
 const fedeliTxt=()=>FEDELI!==null?`<svg viewBox="0 0 5 7" width="10" height="14" shape-rendering="crispEdges" fill="currentColor"><path d="M2 0h1v7H2zM0 2h5v1H0z"/></svg>${
   FEDELI.toLocaleString(LANG==='en'?'en-US':'it-IT')} ${FEDELI===1?L('fedele','faithful'):L('fedeli','faithful')}`:'';
-// con la data d'inizio esplicita: senza, GoatCounter restituiva un totale vecchio rimasto in cache a 0
-fetch('https://nunnercounter.goatcounter.com/counter/TOTAL.json?start=2026-10-01')
+/* GoatCounter tiene in cache ogni indirizzo per ore (parametri inventati ignorati), quindi la data di fine,
+   sempre nel futuro, cambia ogni ora: domani + l'ora UTC in giorni. Al più un'ora di ritardo sul totale. */
+const fedeliEnd=(d=>(d.setUTCDate(d.getUTCDate()+1+d.getUTCHours()),d.toISOString().slice(0,10)))(new Date());
+fetch('https://nunnercounter.goatcounter.com/counter/TOTAL.json?start=2026-10-01&end='+fedeliEnd)
   .then(r=>r.ok?r.json():null)
   .then(j=>{FEDELI=j?parseInt(String(j.count).replace(/\D/g,''),10)||0:null;
     const el=document.getElementById('fedeli');if(el)el.innerHTML=fedeliTxt();})

@@ -91,6 +91,9 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 .card button.link{font-family:'VT323',monospace;font-size:17px;letter-spacing:0;margin:0;padding:0;color:var(--gold);
   background:none;box-shadow:none;text-decoration:underline;text-underline-offset:3px}
 .card button.link:hover,.card button.link:focus-visible{background:none;transform:none;color:#fff2b0}
+.card a.link{color:var(--gold);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.card a.link:hover,.card a.link:focus-visible{color:#fff2b0}
+.card a.link svg{vertical-align:-1px;margin-right:4px}
 .card .crucis{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;margin:6px 0 2px;
   font-family:'VT323',monospace;font-size:19px;color:#ffb3cb}
 .card .crucis span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
@@ -2422,9 +2425,12 @@ function applyLang(){
   BTN_P.setAttribute('aria-label',L('Pausa','Pause'));BTN_M.setAttribute('aria-label',L('Musica','Music'));
   for(const b of document.querySelectorAll('#ilang button[data-l]'))b.classList.toggle('on',b.dataset.l===LANG);
 }
-const SITE='https://www.carolinacrespi.it/';
+const SITE='https://www.carolinacrespi.it/', INSTAGRAM='https://www.instagram.com/playnunner/';
+/* l'icona di Instagram in pixel, 7x7 come la croce dei fedeli */
+const IG_ICON='<svg viewBox="0 0 7 7" width="14" height="14" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">'+
+  '<path d="M1 0h5v1H1zM1 6h5v1H1zM0 1h1v5H0zM6 1h1v5H6zM5 1h1v1H5zM2 2h3v1H2zM2 4h3v1H2zM2 3h1v1H2zM4 3h1v1H4z"/></svg>';
 const credit=intro=>`<div class="credit">${L('un gioco di','a game by')} Carolina Crespi · <button class="link" onclick="openAbout()">${L('chi sono','about me')}</button>${
-  intro?` · <button class="link" onclick="playIntro()">${L("rivedi l'intro",'replay intro')}</button>`:''}</div>`;
+  intro?` · <button class="link" onclick="playIntro()">${L("rivedi l'intro",'replay intro')}</button>`:''} · <a class="link" href="${INSTAGRAM}" target="_blank" rel="noopener">${IG_ICON}Instagram</a></div>`;
 /* i fedeli: le visite contate da GoatCounter, lette una volta all'avvio. Lo zero si mostra; se invece
    il conteggio non arriva (gioco aperto in locale, rete assente, contatore bloccato) la riga resta vuota. */
 let FEDELI=null;

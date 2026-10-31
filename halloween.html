@@ -3255,11 +3255,77 @@ update=dt=>{gameUpdate2(dt);
 /* e Gertrude, per una notte, col cappello da strega */
 const CAPPELLO=sprite([
   '......KK....','.....KmmK...','....KmmK....','...KmmmK....','...KOOOOK...','.KKmmmmmmKK.','KmmmmmmmmmmK','.KKKKKKKKKK.']);
+const SCOPA=sprite(['gY.g.................','YgYgnnnnnnnnnnnnnnnnN','gYgY.................','Y.gY.................']);
 const gameNun=drawNun;
-drawNun=()=>{gameNun();
-  if(NUN.dead||on('tiny')||(invuln>0&&Math.floor(frameT*14)%2===0))return;
+drawNun=()=>{const br=on('broom'), w=powers.wings;
+  if(br)powers.wings=0;                          // in scopa niente ali della Colomba: vola la scopa
+  gameNun();
+  if(br)powers.wings=w;
+  if(NUN.dead||(invuln>0&&Math.floor(frameT*14)%2===0))return;
   const s=nunSize(), fr=Math.floor(NUN.anim)%4, bob=NUN.onGround&&fr%2===1?-1:0;
-  cx.drawImage(CAPPELLO,Math.round(NUN.x)+3,Math.round(NUN.fy-s.h+bob)-6);};
+  if(br){cx.drawImage(SCOPA,Math.round(NUN.x)-6,Math.round(NUN.fy)-5);
+    if(Math.random()<0.6)burst(NUN.x-6,NUN.fy-3,['#ff9a3c','#f6c945','#fff2b0'],1,{vmin:10,vmax:30,grav:0,life:0.5,kind:'spark'});}
+  if(!on('tiny'))cx.drawImage(CAPPELLO,Math.round(NUN.x)+3,Math.round(NUN.fy-s.h+bob)-6);};
+
+/* ==========================================================================
+   L'EASTER EGG: LA ZUCCA D'ORO E LA SCOPA VOLANTE
+   La prima zucca d'oro arriva sempre a 310 metri (il 31 ottobre), poi una grazia su dieci è una zucca d'oro.
+   Chi la prende vola 8 secondi su una scopa da strega: salti infiniti come con la Colomba, e i peccati che
+   tocca vengono esorcizzati (diventano fantasmini che volano via, +50). Intanto suona la Toccata.
+   La schermata iniziale non la nomina: un indizio e basta.
+   ========================================================================== */
+const ZUCCA_ORO=sprite([
+  "....nv....","..oOOOOo..",".oOOOOOOo.","oOYYOOYYOo","oOOOOOOOOo","oOYOYYOYOo","oOOYYYYOOo",".oOOOOOOo.","..oooooo.."],
+  {O:'#f6c945',o:'#b5812c',Y:'#ff6a1a'});
+SPR.grace.zucca={base:ZUCCA_ORO,glow:outlined(ZUCCA_ORO,'#fff2b0'),glow2:outlined(ZUCCA_ORO,'#ff9a3c')};
+const ZUCCA_G={id:'zucca',obj:"Zucca d'oro",name:'SCOPA VOLANTE',label:'Scopa volante',fx:'broom',dur:8,w:0,col:'#ff9a3c',sub:'VOLA, SORELLA!',desc:''};
+GRACE_EN.zucca={obj:'Golden pumpkin',sub:'FLY, SISTER!',desc:''};
+let zuccaPrima=true, anime=0, esorcizzati=[];
+/* la prima: a 310 metri esatti (la zucca nasce fuori dallo schermo e arriva a Gertrude proprio lì) */
+const gameUpdate3=update;
+update=dt=>{gameUpdate3(dt);
+  if(state==='run'&&zuccaPrima&&dist>=3100-(LW+12-(NUN.x+8))){
+    zuccaPrima=false;const x=NUN.x+8+(3100-dist);   // tocca Gertrude quando la strada segna 310 m
+    sins=sins.filter(o=>Math.abs(o.x+8-x)>30);graces=graces.filter(p=>Math.abs(p.x-x)>24);
+    graces.push({g:ZUCCA_G,x,y:GROUND-13,t:0});}
+  for(const e of esorcizzati){e.t+=dt;e.y-=22*dt;}
+  esorcizzati=esorcizzati.filter(e=>e.t<1.6);};
+/* le altre: ogni tanto una grazia è una zucca d'oro */
+const gameAddGrace=addGrace;
+addGrace=(x,cy)=>{if(!zuccaPrima&&Math.random()<0.1)graces.push({g:ZUCCA_G,x,y:cy,t:rand(6.28)});else gameAddGrace(x,cy);};
+/* presa la zucca: la scopa (il volo della Colomba, senza ali), un lampo arancione e la Toccata all'organo */
+const gameGrace=applyGrace;
+applyGrace=g=>{gameGrace(g);
+  if(g.id!=='zucca')return;
+  powers.wings=Math.max(powers.wings||0,g.dur);powerMax.wings=g.dur;
+  flash=0.5;flashCol='#ff9a3c';sfx.bell();
+  if(music.on){music.sec='intro';music.bar=0;music.step=0;}};
+/* in scopa i peccati non fanno male: vengono esorcizzati */
+const gameHurt=hurt;
+hurt=s=>{if(state!=='run'||!on('broom'))return gameHurt(s);
+  s.dead=true;anime++;score+=50*(on('glory')?2:1);
+  esorcizzati.push({x:s.x+3,y:s.y+2,t:0,ph:Math.random()*6});
+  burst(s.x+8,s.y+8,['#d9d2e6','#ffffff','#b06cff'],10,{vmax:70,grav:-40,life:0.7});
+  floatText(s.x+8,s.y-4,L('+50 ANIMA SALVATA','+50 SOUL SAVED'),'#d9d2e6');
+  tone(660,0.3,{type:'sine',slide:2,vol:0.05});tone(990,0.3,{type:'sine',slide:2,vol:0.03,delay:0.08});};
+/* i fantasmini esorcizzati salgono al cielo ondeggiando e svaniscono */
+const gameParts=drawParts;
+drawParts=()=>{gameParts();
+  for(const e of esorcizzati){cx.globalAlpha=0.85*(1-e.t/1.6);cx.drawImage(FANT[Math.floor(e.t*6)%2],Math.round(e.x+Math.sin(e.t*5+e.ph)*3),Math.round(e.y));}
+  cx.globalAlpha=1;};
+/* nella barra delle grazie, durante la scopa, la zucca d'oro prende il posto della Colomba */
+const gameHUD=drawHUD;
+drawHUD=()=>{if(!on('broom'))return gameHUD();
+  const i=GRACES.findIndex(g=>g.fx==='wings'), orig=GRACES[i];
+  GRACES[i]=Object.assign({},ZUCCA_G,{fx:'wings'});try{gameHUD();}finally{GRACES[i]=orig;}};
+/* a fine partita: quante anime ha salvato */
+const gameOverCard=overCard;
+overCard=()=>{gameOverCard();
+  if(anime>0){const b=CARD.querySelector('button.go');
+    if(b)b.insertAdjacentHTML('beforebegin',`<p style="color:#ff9a3c">${L(`👻 Anime salvate a cavallo della scopa: <b>${anime}</b>`,`👻 Souls saved on the broomstick: <b>${anime}</b>`)}</p>`);}};
+const gameStart2=startGame;
+startGame=fromSave=>{if(!fromSave){zuccaPrima=true;anime=0;esorcizzati=[];}gameStart2(fromSave);};
+window.startGame=startGame;
 
 /* la musica: si apre con l'organo e l'attacco della Toccata e fuga in re minore di Bach (pubblico dominio,
    qui in do minore), poi un tema strisciante col theremin. Stessi accordi, contrabbasso e spazzole di sempre */
@@ -3311,7 +3377,8 @@ music.tick=function(){if(!AC||!this.bus)return;
 const zuccaImg=`<img src="${toURL(ZUCCA,3)}" alt="" style="width:30px;height:27px;image-rendering:pixelated;vertical-align:middle">`;
 const gameTitle=titleCard;
 titleCard=()=>{gameTitle();const sub=CARD.querySelector('.sub');
-  if(sub)sub.insertAdjacentHTML('afterend',`<div class="sub" style="color:#ff9a3c;margin-top:-6px">${zuccaImg} ${L('Edizione di Halloween','Halloween edition')} ${zuccaImg}</div>`);};
+  if(sub)sub.insertAdjacentHTML('afterend',`<div class="sub" style="color:#ff9a3c;margin-top:-6px">${zuccaImg} ${L('Edizione di Halloween','Halloween edition')} ${zuccaImg}</div>`+
+    `<p class="note" style="margin:-4px 0 10px;color:#d9d2e6;font-style:italic">${L("Si dice che stanotte, a Settevizi, qualcosa di dorato aspetti chi corre abbastanza lontano…","They say that tonight, somewhere in Settevizi, something golden waits for those who run far enough…")}</p>`);};
 const gameStart=startGame;
 startGame=fromSave=>{gameStart(fromSave);
   if(!fromSave)announce(L('DOLCETTO O SCHERZETTO?','TRICK OR TREAT?'),L('GERTRUDE SCEGLIE LO SCHERZETTO','GERTRUDE PICKS THE TRICK'),'#ff9a3c',2.2);};

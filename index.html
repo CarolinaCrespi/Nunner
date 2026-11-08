@@ -2508,8 +2508,68 @@ function overCard(){
       .sort((a,b)=>crucis[b.id]-crucis[a.id]).map(s=>`<span><img src="${SPR.sin[s.id].url}" alt="">${sinLabel(s)} x${crucis[s.id]}</span>`).join('')}</div>
     <p>${L(`Record <b>${best}</b> · Strada <b>${m} m</b> · Livello <b>${level}</b>`,`Best <b>${best}</b> · Distance <b>${m} m</b> · Level <b>${level}</b>`)}</p>
     <button class="go" onclick="goFullscreen();startGame(false)">${L('Nuova vocazione','New vocation')}</button>
+    <button class="alt" onclick="shareRun()">${L('Condividi il risultato','Share your score')}</button>
+    <p class="note" id="share-note">${L('Pubblica il tuo risultato nelle storie di Instagram e tagga <b>@playnunner</b>: Gertrude ricondivide i migliori.',
+      'Post your score in your Instagram story and tag <b>@playnunner</b>: Gertrude reposts the best ones.')}</p>
     ${credit()}`,overCard);
+  LAST_RUN={k,s:Math.floor(score),m,level,rec,file:null};prepareShare(LAST_RUN);
 }
+/* condividi la partita: un'immagine 1080x1920 per le storie (Gertrude, il peccato, i punti, l'indirizzo).
+   Si prepara quando compare la schermata, così al tocco la condivisione parte subito: Safari la vuole
+   dentro il gesto, senza attese. Dal telefono si apre il menu di condivisione; dal computer si scarica. */
+let LAST_RUN=null;
+function shareImage(r){
+  const W=1080,H=1920,c=mk(W,H),g=c.getContext('2d'),PS="'Press Start 2P',monospace",VT="'VT323',monospace";
+  g.imageSmoothingEnabled=false;
+  g.fillStyle='#0b0712';g.fillRect(0,0,W,H);
+  g.fillStyle='#b5812c';g.fillRect(60,150,W-120,H-330);           // la cornice delle schede del gioco
+  g.fillStyle='#0b0712';g.fillRect(76,166,W-152,H-362);
+  g.fillStyle='#1b1228';g.fillRect(92,182,W-184,H-394);
+  const txt=(s,y,font,col,shadow)=>{g.font=font;g.textAlign='center';
+    if(shadow){g.fillStyle=shadow;g.fillText(s,W/2+6,y+6);}g.fillStyle=col;g.fillText(s,W/2,y);};
+  txt('NUNNER',320,`72px ${PS}`,'#f6c945','#7a1428');
+  txt(L('La fede non va in pensione','Faith never retires'),395,`50px ${VT}`,'#a88fb6');
+  txt(L('CADUTA IN TENTAZIONE','LED INTO TEMPTATION'),530,`36px ${PS}`,'#ff4f8b');
+  const n=SPR.nun.run[0],s=SPR.sin[r.k.id].base,base=930;         // Gertrude contro il peccato che l'ha fermata
+  g.fillStyle='#2a1c3c';g.fillRect(160,base,W-320,14);
+  g.drawImage(n,W/2-70-n.width*12,base-n.height*12,n.width*12,n.height*12);
+  g.drawImage(s,W/2+90,base-s.height*14,s.width*14,s.height*14);
+  const chi=L(`${/^[AEIOU]/.test(r.k.label)?"L'":'La '}${r.k.label} mi ha fatto lo sgambetto`,`${sinLabel(r.k)} tripped me up`);
+  txt(chi,1050,`54px ${VT}`,'#f4ecdc');
+  const pt=String(r.s);
+  txt(pt,1250,`${Math.min(150,Math.floor(840/pt.length))}px ${PS}`,'#f6c945','#7a1428');
+  txt(L('PUNTI','POINTS'),1325,`30px ${PS}`,'#a88fb6');
+  txt(`${r.m} m · ${L('livello','level')} ${r.level}`,1420,`58px ${VT}`,'#d9cbe0');
+  if(r.rec)txt(L('NUOVO RECORD!','NEW BEST!'),1495,`30px ${PS}`,'#ff4f8b');
+  txt(L('Riesci a fare meglio?','Can you beat me?'),1580,`62px ${VT}`,'#f4ecdc');
+  txt('PLAYNUNNER.COM',1665,`48px ${PS}`,'#f6c945','#7a1428');
+  txt(L('Segui Gertrude su Instagram','Follow Gertrude on Instagram'),1790,`46px ${VT}`,'#a88fb6');   // fuori dalla cornice
+  g.font=`64px ${VT}`;g.textAlign='left';                          // l'icona di Instagram e il profilo
+  const iw=7*9,gap=22,tw=g.measureText('@playnunner').width,x0=Math.round((W-iw-gap-tw)/2),iy=1812;
+  g.fillStyle='#f6c945';
+  for(const[x,y,w,h]of[[1,0,5,1],[1,6,5,1],[0,1,1,5],[6,1,1,5],[5,1,1,1],[2,2,3,1],[2,4,3,1],[2,3,1,1],[4,3,1,1]])
+    g.fillRect(x0+x*9,iy+y*9,w*9,h*9);
+  g.fillText('@playnunner',x0+iw+gap,iy+56);
+  return c;
+}
+async function prepareShare(r){
+  try{await Promise.all([document.fonts.load("36px 'Press Start 2P'"),document.fonts.load("54px 'VT323'")]);}catch(e){}
+  const blob=await new Promise(res=>shareImage(r).toBlob(res,'image/png'));
+  if(blob)r.file=new File([blob],'nunner_'+r.s+'.png',{type:'image/png'});
+}
+function shareRun(){
+  const r=LAST_RUN;if(!r||!r.file)return;
+  const text=L(`${r.s} punti a Nunner. Riesci a fare meglio? 👉 playnunner.com @playnunner`,
+               `${r.s} points in Nunner. Can you beat me? 👉 playnunner.com @playnunner`);
+  if(window.goatcounter&&goatcounter.count)goatcounter.count({path:'condividi',title:'Condividi la partita',event:true});
+  if(navigator.canShare&&navigator.canShare({files:[r.file]})){navigator.share({files:[r.file],text}).catch(()=>{});return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(r.file);a.download=r.file.name;   // dal computer: si scarica
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  if(navigator.clipboard)navigator.clipboard.writeText(text).catch(()=>{});
+  const note=document.getElementById('share-note');
+  if(note)note.textContent=L("Immagine salvata nei Download. Pubblicala nelle storie di Instagram e tagga @playnunner!",'Image saved to Downloads. Post it in your Instagram story and tag @playnunner!');
+}
+window.shareRun=shareRun;
 /* fromSave=false: partita nuova con tre vite · true: si riparte dall'ultima croce con le vite rimaste */
 function startGame(fromSave){
   ac();

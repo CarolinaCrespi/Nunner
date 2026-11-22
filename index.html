@@ -85,6 +85,9 @@ canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 .kbd{display:inline-block;font-family:'Press Start 2P',monospace;font-size:8px;line-height:1;color:var(--gold);
   background:#241a30;border:2px solid #6a5a7a;border-bottom-width:4px;padding:4px 5px 3px;margin-right:5px;vertical-align:2px}
 .card .note{font-size:18px;color:#ffb3cb;margin:8px 0 0}
+.card .bw{margin:12px auto 6px;max-width:460px;padding:11px 12px 9px;background:#000;box-shadow:0 0 0 3px var(--gold),0 0 0 6px #000;
+  font-family:'Press Start 2P',monospace;font-size:11px;letter-spacing:1px;color:var(--gold)}
+.card .bw span{display:block;margin-top:7px;font-family:'VT323',monospace;font-size:19px;letter-spacing:0;color:#ffb3cb}
 .card .credit{margin-top:14px;font-family:'VT323',monospace;font-size:17px;color:#8a7a9a}
 .card .fedeli{margin-top:12px;font-family:'VT323',monospace;font-size:19px;color:var(--gold)}
 .card .fedeli svg{vertical-align:-1px;margin-right:6px}
@@ -390,6 +393,13 @@ const GRACE_EN={
   giglio:   {obj:'Lily',         sub:'YOU SHRINK',           desc:'For 8 s you shrink and slip under the sins'}};
 const sinLabel=s=>L(s.label,SIN_EN[s.id]);
 const graceTxt=g=>LANG==='en'?GRACE_EN[g.id]:g;
+/* la Black Week (23–29 novembre 2026): le grazie a tempo durano il doppio. Si accende e si spegne da sola
+   con la data del telefono; per provarla ?blackweek, per spegnerla ?blackweek=0 */
+const BLACK=(()=>{const q=new URLSearchParams(location.search);
+  if(q.has('blackweek'))return q.get('blackweek')!=='0';
+  const now=new Date();return now>=new Date(2026,10,23)&&now<new Date(2026,10,30);})();
+const graceDur=g=>g.dur*(BLACK?2:1);
+const graceDesc=g=>BLACK?graceTxt(g).desc.replace(/(\d+) s\b/,(m,n)=>`${n*2} s`):graceTxt(g).desc;
 
 /* ==========================================================================
    6. LE SETTE GRAZIE — ognuna con la sua dinamica
@@ -1522,8 +1532,8 @@ function applyGrace(g){
     if(lives<MAX_LIVES){lives++;announce(graceTxt(g).obj.toUpperCase(),L('+1 VITA','+1 LIFE'),'#ff4f8b');}
     else{score+=100;announce(graceTxt(g).obj.toUpperCase(),L('+100 PUNTI','+100 POINTS'),'#ff4f8b');}
   }else{
-    powers[g.fx]=g.dur;powerMax[g.fx]=g.dur;
-    announce(graceTxt(g).obj.toUpperCase(),graceTxt(g).sub,g.col==='#ffffff'?'#fff2b0':g.col);
+    powers[g.fx]=graceDur(g);powerMax[g.fx]=graceDur(g);
+    announce(graceTxt(g).obj.toUpperCase(),graceTxt(g).sub+(BLACK?' - X2':''),g.col==='#ffffff'?'#fff2b0':g.col);
   }
   floatText(cxn,cyn-14,on('glory')?'+100':'+50');
 }
@@ -2466,12 +2476,15 @@ document.getElementById('isnd').addEventListener('click',()=>{
   (a.state==='running'?Promise.resolve():a.resume()).then(()=>{introMusicStop();introMusic(introS,introT);introSndBtn();});});
 window.setLang=setLang;
 function titleCard(){
-  const gr=GRACES.map(g=>`<div><img src="${SPR.grace[g.id].url}" alt=""><span><b>${graceTxt(g).obj}</b>${graceTxt(g).desc}</span></div>`).join('');
+  const gr=GRACES.map(g=>`<div><img src="${SPR.grace[g.id].url}" alt=""><span><b>${graceTxt(g).obj}</b>${graceDesc(g)}</span></div>`).join('');
   const K=k=>`<span class="kbd">${k}</span>`;
   const sn=SINS.map(s=>`<div><img src="${SPR.sin[s.id].url}" alt="">${sinLabel(s)}</div>`).join('');
   showCard(`
     <h1>NUNNER</h1>
     <div class="sub">${L('La fede non va in pensione','Faith never retires')}</div>
+    ${BLACK?`<div class="bw">${L('BLACK WEEK A SETTEVIZI','BLACK WEEK IN SETTEVIZI')}<span>${L(
+      'Grazie in offerta: durano il doppio fino al 29 novembre. Batti il tuo record!',
+      'Graces on sale: they last twice as long until 29 November. Beat your record!')}</span></div>`:''}
     <p>${L(`Settant'anni, <b>tre vite</b> e zero pazienza. Suor Gertrude attraversa <b>Settevizi</b>
        e i peccati si tolgono di mezzo. O ci prova.`,
        `Seventy years old, <b>three lives</b> and zero patience. Sister Gertrude crosses <b>Settevizi</b>,
